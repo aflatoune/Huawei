@@ -2,29 +2,28 @@
 
 # Introduction
 
-Le réseau d'accès optique (OAN) est une solution courante de réseau d'accès domestique à large bande dans le monde entier. Il relie les abonnés des terminaux à leur fournisseur de services. Les défaillances du réseau affectent à la fois la qualité du service (QoS) et l'expérience de l'utilisateur (la qualité d'expérience QoE). Pour réduire les dommages, il est important de prévoir à l'avance les défaillances du réseau et de les réparer à temps. Les algorithmes d'apprentissage machine (ML) ont été largement utilisés comme solution pour construire ces modèles de prédiction des pannes. 
+Le réseau d'accès optique (OAN) est une solution courante de réseau d'accès domestique à large bande dans le monde entier. Il relie les abonnés des terminaux à leur fournisseur de services. Les défaillances du réseau affectent à la fois la qualité du service (QoS) et l'expérience de l'utilisateur (la qualité d'expérience QoE). Pour réduire les dommages, il est important de prévoir à l'avance les défaillances du réseau et de les réparer à temps. Les algorithmes d'apprentissage machine (ML) ont été largement utilisés comme solution pour construire ces modèles de prédiction des pannes.
 
-Cependant, la plupart des modèles d'apprentissage automatique sont spécifiques aux données et ont tendance à se dégrader lorsque la distribution des données change. Le premier défi de données de Huawei France de cette année vise à résoudre ce problème. 
+Cependant, la plupart des modèles d'apprentissage automatique sont spécifiques aux données et ont tendance à se dégrader lorsque la distribution des données change. Le premier défi de données de Huawei France de cette année vise à résoudre ce problème.
 
 Vous recevrez un ensemble de données étiquetées sur le réseau d'accès optique d'une ville que nous appelons "A" (que nous appelons le domaine source) et un ensemble de données pour la plupart non étiquetées d'une ville "B" (que nous appelons le domaine cible).
 
 On vous demande de construire une solution d'apprentissage par transfert en utilisant les données sources étiquetées et les données cibles non étiquetées pour entraîner un modèle de prédiction de panne pour la ville B. Il s'agit d'un **problème d'adaptation de domaine non supervisée (UDA)**. Pour être précis, nous incluons un petit nombre de points cibles étiquetés dans l'ensemble d'entraînement, de sorte que nous pouvons appeler cette configuration "UDA à quelques coups" ou "adaptation de domaine semi-supervisée".
 
-
 1. **valeurs manquantes** : il y a beaucoup de valeurs manquantes dans les données ;
 2. **séries temporelles de données de capteurs** ;
-3. **déséquilibre des classes** : les défaillances du réseau sont rares, il s'agit donc d'un problème de classification très déséquilibré. 
-
+3. **déséquilibre des classes** : les défaillances du réseau sont rares, il s'agit donc d'un problème de classification très déséquilibré.
 
 ## Contexte
 
 Les technologies de transmission ont évolué pour intégrer les technologies optiques jusque dans les réseaux d'accès, au plus près de l'abonné. Actuellement, la fibre optique est le support de transmission par excellence en raison de sa capacité à propager le signal sur de longues distances sans régénération, de sa faible latence et de sa très grande largeur de bande. La fibre optique, initialement déployée dans les réseaux à très longue distance et à très haut débit, tend aujourd'hui à se généraliser pour offrir des services plus grand public en termes de bande passante. Il s'agit des technologies FTTH pour "Fiber to the Home ".
 
 Le FTTH généralement adopté par les opérateurs est une architecture PON (Passive Optical Network). Le PON est une architecture point à multipoint basée sur les éléments suivants :
+
 - Une infrastructure de fibre optique partagée. L'utilisation de coupleurs optiques dans le réseau est la base de l'architecture et de l'ingénierie de déploiement. Les coupleurs sont utilisés pour desservir plusieurs zones ou plusieurs abonnés.
 
 
-- Equipement central faisant office de terminaison de ligne optique (OLT). L'OLT gère la diffusion et la réception des flux à travers les interfaces du réseau. Il reçoit les signaux des abonnés et diffuse un contenu basé sur des services spécifiques. 
+- Equipement central faisant office de terminaison de ligne optique (OLT). L'OLT gère la diffusion et la réception des flux à travers les interfaces du réseau. Il reçoit les signaux des abonnés et diffuse un contenu basé sur des services spécifiques.
 
 
 - Équipements terminaux :
@@ -35,7 +34,7 @@ Le FTTH généralement adopté par les opérateurs est une architecture PON (Pas
 
 Les données pour ce défi sont collectées à partir de capteurs au niveau de l'ONT.
 
-### Les données
+## Les données
 
 Les données proviennent de deux villes différentes : la ville A (la source) et la ville B (la cible). Les données sont étiquetées pour la ville A mais (principalement) non étiquetées pour la ville B (seulement 20% des données étiquetées sont connues pour la ville B). Pour les deux villes A et B, les données sont une série temporelle collectée pendant environ 60 jours. La granularité de la série temporelle est de 15 minutes. Les échantillons représentent différents utilisateurs (donc différents ONT). A chaque pas de temps, nous disposons d'une mesure en dix dimensions des caractéristiques suivantes (entre parenthèses, les unités de chaque caractéristique).
 
@@ -49,18 +48,18 @@ Les données proviennent de deux villes différentes : la ville A (la source) et
 - **send** : puissance d'émission du module optique GPON ONT (dBm)
 - **temp** : température du module optique GPON ONT (Celsius)
 - **volt** : tension d'alimentation du module optique GPON ONT (mV)
-- **étiquettes** : 0 (faible) ou 1 (échec) pour l'échantillon. 
+- **étiquettes** : 0 (faible) ou 1 (échec) pour l'échantillon.
 
 L'objectif du défi est de séparer le faible de l'échec, les bonnes données sont juste données comme information secondaire (pouvant être utilisées pour la calibration), ainsi l'objectif est de soumettre un classificateur binaire.
 
-Soit $x_t$ l'échantillon collecté au jour $t$, alors l'étiquette correspondante est calculée au jour $t+7$. Notre objectif est de prédire un échec à partir de données provenant de 7 jours auparavant.
+Soit ![equation](https://latex.codecogs.com/svg.latex?x_t) l'échantillon collecté au jour ![equation](https://latex.codecogs.com/svg.latex?t) , alors l'étiquette correspondante est calculée au jour ![equation](https://latex.codecogs.com/svg.latex?t+7) . Notre objectif est de prédire un échec à partir de données provenant de 7 jours auparavant.
 
 
 Les données sont données avec la forme **[users, timestamps, features]** et les features sont données dans le même ordre que celui présenté ci-dessus. Pour chaque utilisateur et chaque horodatage, nous agrégeons sept jours de données.
 
 Notez que l'ensemble de données publiques (qui vous est remis avec le kit de démarrage) et l'ensemble de données privées (utilisé pour évaluer vos soumissions sur le serveur) proviennent de la même distribution, donc en principe vous pourriez utiliser les données cibles publiques étiquetées pour apprendre un classificateur et soumettre la fonction réelle. Cela irait à l'encontre de l'objectif de l'apprentissage par transfert, nous avons donc décidé de transformer légèrement mais significativement l'ensemble de données privées pour rendre cette stratégie non performante.
 
-### Métriques
+## Métriques
 
 - Accuracy (**acc**): Le nombre d'étiquettes correctement prédites par rapport au nombre total d'échantillons.  [sklearn function](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.accuracy_score.html#sklearn.metrics.accuracy_score). 
 - Area unther the ROC curve (**auc**). Ce score nous donne la probabilité qu'une instance d'échec soit mieux notée qu'une instance faible par la fonction discriminante binaire [sklearn function](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html).
@@ -70,7 +69,7 @@ Notez que l'ensemble de données publiques (qui vous est remis avec le kit de d�
 **NOTE : Average precision (ap) est la métrique officiel d'évaluation**.
 
 
-#### Données manquantes
+## Données manquantes
 
 Vous remarquerez que certaines données sont manquantes dans les ensembles de données. Il peut y avoir plusieurs raisons :
 
@@ -78,6 +77,8 @@ Vous remarquerez que certaines données sont manquantes dans les ensembles de do
 2. Le processus de collecte des données ne parvient pas à récupérer une caractéristique.
 
 Cela fait partie du défi de surmonter cette difficulté de la vie réelle.
+
+## Installation
 
 Pour installer `ramp-workflow`:
 ```
@@ -124,5 +125,3 @@ data/
 Ces fichiers sont ceux qui seront lus par `problem.py`.
 
 Attention : nous vous laissons les données originales pour que vous puissiez les explorer. Mais l'ensemble des données privées a été généré en utilisant le programme original `prepare_data.py`.
-
-Alors faites-en ce que vous voulez, nous n'oublions pas comment les données privées sont traitées.
