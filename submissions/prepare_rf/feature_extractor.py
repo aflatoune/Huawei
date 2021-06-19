@@ -11,5 +11,4 @@ class FeatureExtractor:
         # We flatten the input, originally 3D (sample, time, dim) to
         # 2D (sample, time * dim)
         X = X.reshape(X.shape[0], -1)
-        print(X.shape)
         return X
