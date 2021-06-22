@@ -9,6 +9,7 @@ class Classifier:
 
     def fit(self, X_source, X_source_bkg, X_target, X_target_unlabeled,
             X_target_bkg, y_source, y_target):
+        print(X_source.shape, y_source.shape)
         self.clf.fit(X_source, y_source)
 
     def predict_proba(self, X_target, X_target_bkg):
