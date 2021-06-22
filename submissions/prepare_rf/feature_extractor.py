@@ -10,8 +10,11 @@ class FeatureExtractor:
 
     def transform(self, X):
         np.nan_to_num(X, copy=False)
+        if len(X.shape) == 2:
+            return X
         prep = PrepareExtractor()
         X, y = prep.get_data(X, size_sample=len(X), resample={'unit': 'D', 'func': 'mean'})
+        print(X.shape)
         return X.to_numpy()
 
 
