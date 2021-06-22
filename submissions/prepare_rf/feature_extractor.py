@@ -12,7 +12,7 @@ class FeatureExtractor:
         np.nan_to_num(X, copy=False)
         prep = PrepareExtractor()
         X, y = prep.get_data(X, size_sample=len(X), resample={'unit': 'D', 'func': 'mean'})
-        return X
+        return X.to_numpy()
 
 
 class PrepareExtractor:
