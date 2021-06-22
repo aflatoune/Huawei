@@ -4,7 +4,7 @@ class Classifier:
 
     def __init__(self):
         self.clf = LGBMClassifier(
-            n_estimators=50, max_depth=20, random_state=44, n_jobs=-1)
+            n_estimators=200, max_depth=20, random_state=44, n_jobs=-1)
         print(self.clf)
 
     def fit(self, X_source, X_source_bkg, X_target, X_target_unlabeled,
