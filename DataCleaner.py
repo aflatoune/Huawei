@@ -2,8 +2,12 @@ import numpy as np
 
 
 class DataCleaner:
-    def __init__(self):
-        pass
+    """
+    Class to remove extreme values and NAs from the initial dataset.
+    """
+
+    def __init__(self, drop_var4=True):
+        self.drop_var4 = drop_var4
 
     def _get_extreme_value(self, array_3d, cols=[1, 2], q=.95):
         sub_array_3d = array_3d[:, :, cols]
@@ -54,6 +58,10 @@ class DataCleaner:
         return array_3d
 
     def clean_data(self, array_3d):
+
+        if self.drop_var4:
+            array_3d = np.delete(array_3d, 4, axis=2)
+
         X_va_cleaned = self._clean_extreme_values(array_3d)
         X_cleaned = self._clean_na(X_va_cleaned)
         return X_cleaned
