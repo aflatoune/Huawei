@@ -34,13 +34,15 @@ class DataCleaner:
     def _nan_interp(self, array_2d, threshold=12):
 
         for i in range(array_2d.shape[1]):
-            if np.isnan(array_2d[:, i]).sum() < threshold:
+            if 0 < np.isnan(array_2d[:, i]).sum() < threshold:
                 nans, f = self._nan_helper(array_2d[:, i])
                 array_2d[nans, i] = np.interp(
                     f(nans), f(~nans), array_2d[~nans, i])
-            else:
+            elif np.isnan(array_2d[:, i]).sum() > threshold:
                 inds = np.where(np.isnan(array_2d[:, i]))
                 array_2d[inds, i] = np.nanmean(array_2d[:, i])
+            else:
+                pass
 
         return array_2d
 
