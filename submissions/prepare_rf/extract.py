@@ -24,7 +24,6 @@ class PrepareExtractor:
         - concat_Xy : permet de concaténer le dataframe créer par `get_data`
                     avec ses labels `y`
         """
-        super().__init__()
 
     def get_data(self, X, y=None,
                  size_sample=1000,
