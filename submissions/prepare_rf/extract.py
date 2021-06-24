@@ -3,10 +3,8 @@ import numpy as np
 import pandas as pd
 import time
 
-from DataCleaner import DataCleaner
 
-
-class PrepareExtractor(DataCleaner):
+class PrepareExtractor:
     def __init__(self):
         """
         - create_df_obs : permet de créer pour une observation données
@@ -28,47 +26,72 @@ class PrepareExtractor(DataCleaner):
         """
         super().__init__()
 
-    def get_data(self, X_train, y_train=None,
+    def get_data(self, X, y=None,
                  size_sample=1000,
                  resample={'unit': 'D', 'func': 'mean'},
                  source='source',
                  random_state=1,
-                 name=None):
+                 name=None,
+                 fast=True):
 
         np.random.seed(random_state)
 
-        if not isinstance(X_train, np.ndarray):
-            sample = np.random.choice(range(len(getattr(X_train, source))),
-                                      replace=False,
-                                      size=size_sample)
+        if not isinstance(X, np.ndarray):
+            if size_sample == -1:
+                sample = range(len(getattr(X, source)))
+            else:
+                sample = np.random.choice(range(len(getattr(X, source))),
+                                    replace=False,
+                                    size=size_sample)
         else:
-            sample = np.random.choice(
-                range(len(X_train)), replace=False, size=size_sample)
+            if size_sample == -1:
+                sample = range(len(X))
+            else:
+                sample = np.random.choice(range(len(X)),
+                                    replace=False,
+                                    size=size_sample)
+
 
         liste_X = []
-        array_y = np.zeros(len(sample))
+        if y is not None:
+            array_y = np.zeros(len(sample))
 
         start = time.time()
         for p, i in enumerate(sample):
-            X, y = self.create_df_obs(X=X_train,
-                                      y=y_train,
-                                      source=source,
-                                      sample=i,
-                                      add_unit=[],
-                                      resample=resample,
-                                      verbose=False)
-            X = self.flatten_df(X, name=name)
-            liste_X.append(X)
-            array_y[p] = y
+            X_, y_ = self.create_df_obs(X=X,
+                                y=y,
+                                source=source,
+                                sample=i,
+                                add_unit=[],
+                                resample=resample,
+                                verbose=False)
+            if fast:
+                X_ = self.flatten(X_, name=name)
+            else:
+                X_ = self.flatten_df(X_, name=name)
+
+            liste_X.append(X_)
+            if y is not None:
+                array_y[p] = y_
+            else:
+                array_y = None
 
         print("Temps : ", str(time.time() - start))
-        X = pd.concat(liste_X)
-
+        if isinstance(X_, np.ndarray):
+            X = np.hstack(X_)
+        else:
+            X = pd.concat(liste_X)
         return X, array_y
 
     def concat_Xy(self, X, y):
         X["target"] = y
         return X
+
+    def flatten(self, X, label=None):
+        if label is None:
+            return X.to_numpy().reshape(1, -1)
+        X = X.to_numpy().reshape(1, -1)
+        return np.append(X, label)
 
     def flatten_df(self, X, name=None):
         add_unit = ['day', 'hour', 'minute']
@@ -166,8 +189,9 @@ class PrepareExtractor(DataCleaner):
             X = self._resampling(X=X, resample=resample,
                                  columns=columns, verbose=verbose)
 
-        add_unit = self._get_add_unit(add_unit)
-        X = X.apply(self.get_unit, **add_unit, axis=1)
+        if add_unit:
+            add_unit = self._get_add_unit(add_unit)
+            X = X.apply(self.get_unit, **add_unit, axis=1)
         return X, y
 
     def _resampling(self, X, resample, columns, verbose=True):
