@@ -3,8 +3,10 @@ import numpy as np
 import pandas as pd
 import time
 
+from DataCleaner import DataCleaner
 
-class PrepareExtractor:
+
+class PrepareExtractor(DataCleaner):
     def __init__(self):
         """
         - create_df_obs : permet de créer pour une observation données
@@ -24,44 +26,49 @@ class PrepareExtractor:
         - concat_Xy : permet de concaténer le dataframe créer par `get_data`
                     avec ses labels `y`
         """
-        pass
+        DataCleaner.__init__(self)
 
     def get_data(self, X_train, y_train=None,
-                size_sample=1000,
-                resample={'unit': 'D', 'func': 'mean'},
-                source='source',
-                random_state=1,
-                name='S'):
+                 size_sample=1000,
+                 resample={'unit': 'D', 'func': 'mean'},
+                 source='source',
+                 random_state=1,
+                 name=None):
 
         np.random.seed(random_state)
-        sample = np.random.choice(range(len(getattr(X_train, source))),
-                                replace=False,
-                                size=size_sample)
+
+        if not isinstance(X_train, np.ndarray):
+            sample = np.random.choice(range(len(getattr(X_train, source))),
+                                      replace=False,
+                                      size=size_sample)
+        else:
+            sample = np.random.choice(
+                range(len(X_train)), replace=False, size=size_sample)
+
         liste_X = []
         array_y = np.zeros(len(sample))
 
         start = time.time()
         for p, i in enumerate(sample):
             X, y = self.create_df_obs(X=X_train,
-                                y=y_train,
-                                source=source,
-                                sample=i,
-                                add_unit=[],
-                                resample=resample,
-                                verbose=False)
+                                      y=y_train,
+                                      source=source,
+                                      sample=i,
+                                      add_unit=[],
+                                      resample=resample,
+                                      verbose=False)
             X = self.flatten_df(X, name=name)
             liste_X.append(X)
             array_y[p] = y
 
         print("Temps : ", str(time.time() - start))
         X = pd.concat(liste_X)
-        return X, array_y
 
+        return X, array_y
 
     def concat_Xy(self, X, y):
         X["target"] = y
         return X
-
 
     def flatten_df(self, X, name=None):
         add_unit = ['day', 'hour', 'minute']
@@ -78,14 +85,13 @@ class PrepareExtractor:
             tmp["groupe"] = name
         return tmp
 
-
     def create_df_obs(self, X, y=None,
-                    source='source',
-                    sample=44,
-                    extra='',
-                    add_unit=["day", "hour", "minute"],
-                    resample=None,
-                    verbose=True):
+                      source='source',
+                      sample=44,
+                      extra='',
+                      add_unit=["day", "hour", "minute"],
+                      resample=None,
+                      verbose=True):
         """
         Permet de récupérer une observation et son label
         sur une source spéficique de données. Possibilité
@@ -122,32 +128,47 @@ class PrepareExtractor:
         # Fixe ensuite un index de 15 min entre chaque unité
 
         start = datetime.datetime(2000, 1, 1, 0)
-        obs = getattr(X, source)[sample]
+        if not isinstance(X, np.ndarray):
+            obs = getattr(X, source)[sample]
+        else:
+            obs = X[sample]
+
         index = pd.date_range(start, periods=len(obs), freq="15T")
 
-        columns = ["current",
-                "err_down_bip",
-                "err_up_bip",
-                "olt_recv",
-                "rdown",
-                "recv",
-                "rup",
-                "send",
-                "temp",
-                "volt"]
+        if self.drop_olt_recv:
+            columns = ["current",
+                       "err_down_bip",
+                       "err_up_bip",
+                       "rdown",
+                       "recv",
+                       "rup",
+                       "send",
+                       "temp",
+                       "volt"]
+        else:
+            columns = ["current",
+                       "err_down_bip",
+                       "err_up_bip",
+                       "olt_recv",
+                       "rdown",
+                       "recv",
+                       "rup",
+                       "send",
+                       "temp",
+                       "volt"]
 
         columns = [c + extra for c in columns]
 
         X = pd.DataFrame(obs, index=index,
-                        columns=columns)
+                         columns=columns)
 
         if resample:
-            X = self._resampling(X=X, resample=resample, columns=columns, verbose=verbose)
+            X = self._resampling(X=X, resample=resample,
+                                 columns=columns, verbose=verbose)
 
         add_unit = self._get_add_unit(add_unit)
         X = X.apply(self.get_unit, **add_unit, axis=1)
         return X, y
-
 
     def _resampling(self, X, resample, columns, verbose=True):
         if verbose:
@@ -172,17 +193,15 @@ class PrepareExtractor:
                 raise KeyError("Invalid key must have {'unit', 'func'}")
         return X
 
-
     def _get_add_unit(self, add_unit):
         params = {"day": False,
-                'hour': False,
-                'minute': False}
+                  'hour': False,
+                  'minute': False}
 
         for i in add_unit:
             if i in params:
                 params[i] = True
         return params
-
 
     def get_unit(self, row, day=True, hour=True, minute=True):
         """

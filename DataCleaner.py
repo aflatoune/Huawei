@@ -6,10 +6,10 @@ class DataCleaner:
     Class to remove extreme values and NAs from the initial dataset.
     """
 
-    def __init__(self, drop_var4=True):
-        self.drop_var4 = drop_var4
+    def __init__(self, drop_olt_recv=True):
+        self.drop_olt_recv = drop_olt_recv
 
-    def _get_extreme_value(self, array_3d, cols=[1, 2], q=.95):
+    def _get_extreme_value(self, array_3d, cols=[1, 2], q=.9):
         sub_array_3d = array_3d[:, :, cols]
         array_2d = np.concatenate([obs for obs in sub_array_3d], axis=0)
         extreme_val = np.nanquantile(array_2d, q=q, axis=0)
@@ -38,7 +38,7 @@ class DataCleaner:
     def _nan_interp(self, array_2d, threshold=12):
 
         for i in range(array_2d.shape[1]):
-            if 0 < np.isnan(array_2d[:, i]).sum() < threshold:
+            if 0 < np.isnan(array_2d[:, i]).sum() <= threshold:
                 nans, f = self._nan_helper(array_2d[:, i])
                 array_2d[nans, i] = np.interp(
                     f(nans), f(~nans), array_2d[~nans, i])
@@ -59,8 +59,8 @@ class DataCleaner:
 
     def clean_data(self, array_3d):
 
-        if self.drop_var4:
-            array_3d = np.delete(array_3d, 4, axis=2)
+        if self.drop_olt_recv:
+            array_3d = np.delete(array_3d, 3, axis=2)
 
         X_va_cleaned = self._clean_extreme_values(array_3d)
         X_cleaned = self._clean_na(X_va_cleaned)

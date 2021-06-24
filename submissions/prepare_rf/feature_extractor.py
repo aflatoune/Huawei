@@ -9,16 +9,83 @@ class FeatureExtractor:
         pass
 
     def transform(self, X):
-        np.nan_to_num(X, copy=False)
-        if len(X.shape) == 2:
-            return X
+        cleaner = DataCleaner(drop_olt_recv=True)
+        X = cleaner.clean_data(X)
+        print(X.shape)
         prep = PrepareExtractor()
-        X, y = prep.get_data(X, size_sample=len(X), resample={'unit': 'D', 'func': 'mean'})
+        X, y = prep.get_data(X, size_sample=X.shape[0], resample={
+                             'unit': 'D', 'func': 'mean'}, name=None)
         print(X.shape)
         return X.to_numpy()
 
 
-class PrepareExtractor:
+class DataCleaner:
+    """
+    Class to remove extreme values and NAs from the initial dataset.
+    """
+
+    def __init__(self, drop_olt_recv=True):
+        self.drop_olt_recv = drop_olt_recv
+
+    def _get_extreme_value(self, array_3d, cols=[1, 2], q=.9):
+        sub_array_3d = array_3d[:, :, cols]
+        array_2d = np.concatenate([obs for obs in sub_array_3d], axis=0)
+        extreme_val = np.nanquantile(array_2d, q=q, axis=0)
+        return {k: v for k, v in zip(cols, extreme_val)}
+
+    def _clean_extreme_values(self, array_3d):
+        d = self._get_extreme_value(array_3d)
+
+        for array_2d in array_3d:
+            for col in d.keys():
+                inds = np.where(array_2d[:, col] > d[col])
+                array_2d[inds, col] = d[col]
+
+        return array_3d
+
+    def _nan_helper(self, array_1d):
+        """
+        Output:
+            - nans, logical indices of NaNs
+            - index, a function, with signature indices=index(logical_indices),
+              to convert logical indices of NaNs to 'equivalent' indices
+        """
+
+        return np.isnan(array_1d), lambda z: z.nonzero()[0]
+
+    def _nan_interp(self, array_2d, threshold=12):
+
+        for i in range(array_2d.shape[1]):
+            if 0 < np.isnan(array_2d[:, i]).sum() <= threshold:
+                nans, f = self._nan_helper(array_2d[:, i])
+                array_2d[nans, i] = np.interp(
+                    f(nans), f(~nans), array_2d[~nans, i])
+            elif np.isnan(array_2d[:, i]).sum() > threshold:
+                inds = np.where(np.isnan(array_2d[:, i]))
+                array_2d[inds, i] = np.nanmean(array_2d[:, i])
+            else:
+                pass
+
+        return array_2d
+
+    def _clean_na(self, array_3d):
+
+        for array_2d in array_3d:
+            array_2d = self._nan_interp(array_2d)
+
+        return array_3d
+
+    def clean_data(self, array_3d):
+
+        if self.drop_olt_recv:
+            array_3d = np.delete(array_3d, 3, axis=2)
+
+        X_va_cleaned = self._clean_extreme_values(array_3d)
+        X_cleaned = self._clean_na(X_va_cleaned)
+        return X_cleaned
+
+
+class PrepareExtractor(DataCleaner):
     def __init__(self):
         """
         - create_df_obs : permet de créer pour une observation données
@@ -38,23 +105,24 @@ class PrepareExtractor:
         - concat_Xy : permet de concaténer le dataframe créer par `get_data`
                     avec ses labels `y`
         """
-        pass
+        DataCleaner.__init__(self)
 
     def get_data(self, X_train, y_train=None,
-                size_sample=1000,
-                resample={'unit': 'D', 'func': 'mean'},
-                source='source',
-                random_state=1,
-                name=None):
+                 size_sample=1000,
+                 resample={'unit': 'D', 'func': 'mean'},
+                 source='source',
+                 random_state=1,
+                 name=None):
 
         np.random.seed(random_state)
 
         if not isinstance(X_train, np.ndarray):
             sample = np.random.choice(range(len(getattr(X_train, source))),
-                                    replace=False,
-                                    size=size_sample)
+                                      replace=False,
+                                      size=size_sample)
         else:
-            sample = np.random.choice(range(len(X_train)), replace=False, size=size_sample)
+            sample = np.random.choice(
+                range(len(X_train)), replace=False, size=size_sample)
 
         liste_X = []
         array_y = np.zeros(len(sample))
@@ -62,12 +130,12 @@ class PrepareExtractor:
         start = time.time()
         for p, i in enumerate(sample):
             X, y = self.create_df_obs(X=X_train,
-                                y=y_train,
-                                source=source,
-                                sample=i,
-                                add_unit=[],
-                                resample=resample,
-                                verbose=False)
+                                      y=y_train,
+                                      source=source,
+                                      sample=i,
+                                      add_unit=[],
+                                      resample=resample,
+                                      verbose=False)
             X = self.flatten_df(X, name=name)
             liste_X.append(X)
             array_y[p] = y
@@ -75,7 +143,7 @@ class PrepareExtractor:
         print("Temps : ", str(time.time() - start))
         X = pd.concat(liste_X)
 
-        return X, y
+        return X, array_y
 
     def concat_Xy(self, X, y):
         X["target"] = y
@@ -146,16 +214,27 @@ class PrepareExtractor:
 
         index = pd.date_range(start, periods=len(obs), freq="15T")
 
-        columns = ["current",
-                   "err_down_bip",
-                   "err_up_bip",
-                   "olt_recv",
-                   "rdown",
-                   "recv",
-                   "rup",
-                   "send",
-                   "temp",
-                   "volt"]
+        if self.drop_olt_recv:
+            columns = ["current",
+                       "err_down_bip",
+                       "err_up_bip",
+                       "rdown",
+                       "recv",
+                       "rup",
+                       "send",
+                       "temp",
+                       "volt"]
+        else:
+            columns = ["current",
+                       "err_down_bip",
+                       "err_up_bip",
+                       "olt_recv",
+                       "rdown",
+                       "recv",
+                       "rup",
+                       "send",
+                       "temp",
+                       "volt"]
 
         columns = [c + extra for c in columns]
 
@@ -163,7 +242,8 @@ class PrepareExtractor:
                          columns=columns)
 
         if resample:
-            X = self._resampling(X=X, resample=resample, columns=columns, verbose=verbose)
+            X = self._resampling(X=X, resample=resample,
+                                 columns=columns, verbose=verbose)
 
         add_unit = self._get_add_unit(add_unit)
         X = X.apply(self.get_unit, **add_unit, axis=1)
