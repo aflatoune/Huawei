@@ -105,7 +105,7 @@ class PrepareExtractor(DataCleaner):
         - concat_Xy : permet de concaténer le dataframe créer par `get_data`
                     avec ses labels `y`
         """
-        DataCleaner.__init__(self)
+        super().__init__()
 
     def get_data(self, X_train, y_train=None,
                  size_sample=1000,
