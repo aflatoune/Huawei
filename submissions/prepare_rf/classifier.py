@@ -1,10 +1,11 @@
 from lightgbm import LGBMClassifier
+from sklearn.ensemble import RandomForestClassifier
 
 class Classifier:
 
     def __init__(self):
-        self.clf = LGBMClassifier(
-            n_estimators=200, max_depth=20, random_state=44, n_jobs=-1)
+        self.clf = RandomForestClassifier(
+            n_estimators=500, max_depth=25, random_state=44, n_jobs=-1)
         print(self.clf)
 
     def fit(self, X_source, X_source_bkg, X_target, X_target_unlabeled,
