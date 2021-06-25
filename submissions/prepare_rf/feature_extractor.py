@@ -9,7 +9,7 @@ class FeatureExtractor:
         self.count = 0
 
     def transform(self, X):
-        if not (len(X) == 29592) and (not len(X) == 50862) and (not len(X) == 8202):
+        if not (len(X) == 29592) and (not len(X) == 50862):
             cleaner = DataCleaner(drop_olt_recv=True)
             X = cleaner.clean_data(X)
             prep = PrepareExtractor()
