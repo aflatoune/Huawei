@@ -5,14 +5,14 @@ import numpy as np
 class Classifier:
 
     def __init__(self):
-        self.clf = RandomForestClassifier(
+        self.clf = LGBMClassifier(
             n_estimators=500, max_depth=-1, random_state=44, n_jobs=-1)
         print(self.clf)
 
     def fit(self, X_source, X_source_bkg, X_target, X_target_unlabeled,
             X_target_bkg, y_source, y_target):
 
-        X = np.hstack([X_source, X_target])
+        X = np.vstack([X_source, X_target])
         y = np.hstack([y_source, y_target])
         self.clf.fit(X, y)
 

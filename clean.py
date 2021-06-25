@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 
 class DataCleaner:
@@ -8,6 +9,27 @@ class DataCleaner:
 
     def __init__(self, drop_olt_recv=True):
         self.drop_olt_recv = drop_olt_recv
+        if self.drop_olt_recv:
+            self.columns = ["current",
+                            "err_down_bip",
+                            "err_up_bip",
+                            "rdown",
+                            "recv",
+                            "rup",
+                            "send",
+                            "temp",
+                            "volt"]
+        else:
+            self.columns = ["current",
+                            "err_down_bip",
+                            "err_up_bip",
+                            "olt_recv",
+                            "rdown",
+                            "recv",
+                            "rup",
+                            "send",
+                            "temp",
+                            "volt"]
 
     def _get_extreme_value(self, array_3d, cols=[1, 2], q=.9):
         sub_array_3d = array_3d[:, :, cols]
@@ -58,10 +80,11 @@ class DataCleaner:
         return array_3d
 
     def clean_data(self, array_3d):
-
+        start = time.time()
         if self.drop_olt_recv:
             array_3d = np.delete(array_3d, 3, axis=2)
 
         X_va_cleaned = self._clean_extreme_values(array_3d)
         X_cleaned = self._clean_na(X_va_cleaned)
+        print("Temps clean : ", str(time.time() - start))
         return X_cleaned

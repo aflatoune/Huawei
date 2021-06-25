@@ -24,8 +24,21 @@ class PrepareExtractor:
         - concat_Xy : permet de concaténer le dataframe créer par `get_data`
                     avec ses labels `y`
         """
+        pass
 
-    def get_data(self, X, y=None,
+    def get_data(self,
+                 X,
+                 col_names=["current",
+                            "err_down_bip",
+                            "err_up_bip",
+                            "olt_recv",
+                            "rdown",
+                            "recv",
+                            "rup",
+                            "send",
+                            "temp",
+                            "volt"],
+                 y=None,
                  size_sample=1000,
                  resample={'unit': 'D', 'func': 'mean'},
                  source='source',
@@ -40,16 +53,15 @@ class PrepareExtractor:
                 sample = range(len(getattr(X, source)))
             else:
                 sample = np.random.choice(range(len(getattr(X, source))),
-                                    replace=False,
-                                    size=size_sample)
+                                          replace=False,
+                                          size=size_sample)
         else:
             if size_sample == -1:
                 sample = range(len(X))
             else:
                 sample = np.random.choice(range(len(X)),
-                                    replace=False,
-                                    size=size_sample)
-
+                                          replace=False,
+                                          size=size_sample)
 
         liste_X = []
         if y is not None:
@@ -58,26 +70,28 @@ class PrepareExtractor:
         start = time.time()
         for p, i in enumerate(sample):
             X_, y_ = self.create_df_obs(X=X,
-                                y=y,
-                                source=source,
-                                sample=i,
-                                add_unit=[],
-                                resample=resample,
-                                verbose=False)
+                                        col_names=col_names,
+                                        y=y,
+                                        source=source,
+                                        sample=i,
+                                        add_unit=[],
+                                        resample=resample,
+                                        verbose=False)
             if fast:
                 X_ = self.flatten(X_, name=name)
             else:
                 X_ = self.flatten_df(X_, name=name)
 
             liste_X.append(X_)
+
             if y is not None:
                 array_y[p] = y_
             else:
                 array_y = None
 
-        print("Temps : ", str(time.time() - start))
-        if isinstance(X_, np.ndarray):
-            X = np.hstack(X_)
+        print("Temps prepare : ", str(time.time() - start))
+        if fast:
+            X = np.vstack(liste_X)
         else:
             X = pd.concat(liste_X)
         return X, array_y
@@ -86,11 +100,11 @@ class PrepareExtractor:
         X["target"] = y
         return X
 
-    def flatten(self, X, label=None):
-        if label is None:
+    def flatten(self, X, name=None):
+        if name is None:
             return X.to_numpy().reshape(1, -1)
         X = X.to_numpy().reshape(1, -1)
-        return np.append(X, label)
+        return np.append(X, name)
 
     def flatten_df(self, X, name=None):
         add_unit = ['day', 'hour', 'minute']
@@ -107,7 +121,19 @@ class PrepareExtractor:
             tmp["groupe"] = name
         return tmp
 
-    def create_df_obs(self, X, y=None,
+    def create_df_obs(self,
+                      X,
+                      col_names=["current",
+                                 "err_down_bip",
+                                 "err_up_bip",
+                                 "olt_recv",
+                                 "rdown",
+                                 "recv",
+                                 "rup",
+                                 "send",
+                                 "temp",
+                                 "volt"],
+                      y=None,
                       source='source',
                       sample=44,
                       extra='',
@@ -120,7 +146,6 @@ class PrepareExtractor:
         de :
             - choisir un resampling temporelle
             - ajouter des variables temporelles
-
         Paramètres
             - X : OpticalDataset
             - y : OpticalLabels
@@ -135,7 +160,6 @@ class PrepareExtractor:
                         {"unit": '<unité de temps>',
                         "func": '<fonction d'aggrégration>'}
             - verbose : affiche les actions effectuées
-
         Return
             X, y : pd.Dataframe de l'observation et son label
         """
@@ -157,36 +181,12 @@ class PrepareExtractor:
 
         index = pd.date_range(start, periods=len(obs), freq="15T")
 
-        if self.drop_olt_recv:
-            columns = ["current",
-                       "err_down_bip",
-                       "err_up_bip",
-                       "rdown",
-                       "recv",
-                       "rup",
-                       "send",
-                       "temp",
-                       "volt"]
-        else:
-            columns = ["current",
-                       "err_down_bip",
-                       "err_up_bip",
-                       "olt_recv",
-                       "rdown",
-                       "recv",
-                       "rup",
-                       "send",
-                       "temp",
-                       "volt"]
-
-        columns = [c + extra for c in columns]
-
         X = pd.DataFrame(obs, index=index,
-                         columns=columns)
+                         columns=col_names)
 
         if resample:
             X = self._resampling(X=X, resample=resample,
-                                 columns=columns, verbose=verbose)
+                                 columns=col_names, verbose=verbose)
 
         if add_unit:
             add_unit = self._get_add_unit(add_unit)
@@ -231,12 +231,10 @@ class PrepareExtractor:
         Crée une nouvelle variable à partir de l'index de temps d'un df.
         Les valeurs sont des unités de temps et non des
         jours/heures/minutes réelles.
-
         Paramètres
             - day : par defaut True, ajoute le jour
             - hour : par defaut True, ajoute l'heure
             - minute : par defaut True, ajoute la minute
-
         """
         if day:
             row["day"] = 'D' + str(row.name.day)
