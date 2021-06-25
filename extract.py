@@ -44,6 +44,10 @@ class PrepareExtractor:
                  source='source',
                  random_state=1,
                  name=None,
+                 verbose=False,
+                 first_diff=False,
+                 add_unit=[],
+                 slice_=0,
                  fast=True):
 
         np.random.seed(random_state)
@@ -74,9 +78,11 @@ class PrepareExtractor:
                                         y=y,
                                         source=source,
                                         sample=i,
-                                        add_unit=[],
+                                        slice_=slice_,
+                                        add_unit=add_unit,
                                         resample=resample,
-                                        verbose=False)
+                                        first_diff=first_diff,
+                                        verbose=verbose)
             if fast:
                 X_ = self.flatten(X_, name=name)
             else:
@@ -136,10 +142,11 @@ class PrepareExtractor:
                       y=None,
                       source='source',
                       sample=44,
-                      extra='',
-                      add_unit=["day", "hour", "minute"],
+                      first_diff=0,
+                      add_unit=[],
+                      slice_=0,
                       resample=None,
-                      verbose=True):
+                      verbose=False):
         """
         Permet de récupérer une observation et son label
         sur une source spéficique de données. Possibilité
@@ -164,7 +171,10 @@ class PrepareExtractor:
             X, y : pd.Dataframe de l'observation et son label
         """
         if y is not None:
-            if source in ['source', 'target']:
+            if isinstance(y, np.ndarray):
+                y = y[sample]
+                pass
+            elif source in ['source', 'target']:
                 y = getattr(y, source)[sample]
             else:
                 y = None
@@ -187,11 +197,21 @@ class PrepareExtractor:
         if resample:
             X = self._resampling(X=X, resample=resample,
                                  columns=col_names, verbose=verbose)
+        if first_diff:
+            X =  self.add_first_diff(X, n_diff=first_diff)
+
+        if slice_:
+            X = X.iloc[:slice_, :]
 
         if add_unit:
             add_unit = self._get_add_unit(add_unit)
             X = X.apply(self.get_unit, **add_unit, axis=1)
         return X, y
+
+
+    def add_first_diff(self, X, n_diff):
+        X = pd.concat([X[n_diff:], X.diff(n_diff)[n_diff:]], axis=1)
+        return X
 
     def _resampling(self, X, resample, columns, verbose=True):
         if verbose:
