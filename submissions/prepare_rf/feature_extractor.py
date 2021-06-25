@@ -18,6 +18,7 @@ class FeatureExtractor:
             X, y = prep.get_data(X, size_sample=-1,
                                 resample={'unit': '6H', 'func': 'mean'},
                                 fast=True, name=self.count)
+       
+            self.count += 1
         print(X.shape)
-        self.count += 1
         return X
