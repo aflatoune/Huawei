@@ -201,12 +201,25 @@ class PrepareExtractor:
             X =  self.add_first_diff(X, n_diff=first_diff)
 
         if slice_:
-            X = X.iloc[:slice_, :]
+            len_index = len(X)
+            slice_ = self.get_slicing(len_index=len_index, liste_borne=slice_)
+            X = X.iloc[slice_, :]
 
         if add_unit:
             add_unit = self._get_add_unit(add_unit)
             X = X.apply(self.get_unit, **add_unit, axis=1)
         return X, y
+
+    def get_slicing(self, len_index, liste_borne):
+        slicing_ = []
+        for sl in liste_borne:
+            if len(sl) == 2:
+                s, e = sl
+                p = 1
+            else:
+                s, e, p = sl
+            slicing_ += list(range(len_index))[s:e][::p]
+        return slicing_
 
 
     def add_first_diff(self, X, n_diff):
