@@ -63,8 +63,8 @@ class DataCleaner:
                 array_2d[nans, i] = np.interp(
                     f(nans), f(~nans), array_2d[~nans, i])
             elif np.isnan(array_2d[:, i]).sum() > threshold:
-                inds = np.where(np.isnan(array_2d[:, i]))
-                array_2d[inds, i] = np.nanmean(array_2d[:, i])
+                np.nan_to_num(array_2d[:, i], nan=np.nanmean(
+                    array_2d[:, i]), copy=False)
             else:
                 pass
 
@@ -91,7 +91,7 @@ class DataCleaner:
         X_cleaned = self._clean_na(X_va_cleaned)
         if extra_na == 'drop':
             index_na = ~np.isnan(X_cleaned).any(axis=1)
-            X_cleaned = X_cleaned[index_na.all(axis=1),:, :]
+            X_cleaned = X_cleaned[index_na.all(axis=1), :, :]
             self.index_na = index_na.all(axis=1)
         elif extra_na == 'fill':
             X_cleaned = X_cleaned.fillna(0)
