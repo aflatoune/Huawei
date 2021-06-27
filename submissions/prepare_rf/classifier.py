@@ -2,6 +2,7 @@ from lightgbm import LGBMClassifier
 import numpy as np
 from sklearn.feature_selection import SelectFromModel
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.semi_supervised import LabelSpreading
 
 
 class Classifier:
@@ -31,3 +32,14 @@ class Classifier:
         return y_proba
 
 
+class Labeling:
+    def __init__(self):
+        pass
+
+    def _label_unlabeled(self, n, value=-1):
+        return np.squeeze(np.full(shape=(1, n), fill_value=value))
+
+    def label_data(self, X, y, n_neighbors=7):
+        lp = LabelSpreading(n_neighbors=n_neighbors)
+        lp.fit(X, y)
+        return lp.transduction_
