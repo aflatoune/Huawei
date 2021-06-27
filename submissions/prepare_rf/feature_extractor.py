@@ -309,7 +309,7 @@ class PrepareExtractor:
             X = self._resampling(X=X, resample=resample,
                                  columns=col_names, verbose=verbose)
         if first_diff:
-            X =  self.add_first_diff(X, n_diff=first_diff)
+            X = self.add_first_diff(X, n_diff=first_diff)
 
         if slice_:
             len_index = len(X)
@@ -331,7 +331,6 @@ class PrepareExtractor:
                 s, e, p = sl
             slicing_ += list(range(len_index))[s:e][::p]
         return slicing_
-
 
     def add_first_diff(self, X, n_diff):
         X = pd.concat([X[n_diff:], X.diff(n_diff)[n_diff:]], axis=1)

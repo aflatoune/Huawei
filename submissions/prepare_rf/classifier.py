@@ -18,16 +18,15 @@ class Classifier:
         X = np.vstack([X_source, X_target])
         y = np.hstack([y_source, y_target])
 
-        selector = SelectFromModel(threshold='0.2*mean', estimator=LGBMClassifier()).fit(X, y)
+        selector = SelectFromModel(
+            threshold='0.2*mean', estimator=LGBMClassifier()).fit(X, y)
         self.col_selected = selector.get_support()
         X = X[:, self.col_selected]
         X = self.std.fit_transform(X)
         self.clf.fit(X, y)
 
     def predict_proba(self, X_target, X_target_bkg):
-      	X_target = X_target[:, self.col_selected]
-      	X_target = self.std.transform(X_target)
+        X_target = X_target[:, self.col_selected]
+        X_target = self.std.transform(X_target)
         y_proba = self.clf.predict_proba(X_target)
         return y_proba
-
-
